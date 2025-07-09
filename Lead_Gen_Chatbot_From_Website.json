@@ -1,0 +1,405 @@
+{
+  "name": "Lead Gen Chatbot From Website",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "mode": "webhook",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -640,
+        20
+      ],
+      "id": "433479e2-3bbc-410c-8c5a-566569d6b3e3",
+      "name": "When chat message received",
+      "webhookId": "e4c9ceb5-4f3a-44a8-9c59-5627d62e8ae6"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=You are a helpful, intelligent website chatbot. The current date is {{ $now.format('yyyy-MM-dd') }}. You are in the Asia/Karachi Timezone. You're a personal assistant of me (Aqdas).\n\n--\n\nContext about the services:\n- We build smart automation workflows and chatbots that save teams hours of manual work every day.\n- Lightning-fast delivery, most custom bots or flows done in 4–6 hours, seriously.\n- Our automations are affordable, scalable, and designed for real business impact.\n- Trusted by many real estate and ecommerce companies.\n- We combine AI tools and human logic, keeping automation natural, efficient.\n\n--\n\nAs a website chatbot, you're tasked with answering questions about the services & then booking a meeting.\n\n- If the customer wishes to book a meeting, first check if they’ve provided a specific date.\n- If they have provided a specific date, first send it to the day checker node to identify which day it is. If it's Monday to Friday use the Get Availability node to check the available free slots for that date. Do not book on Saturday and Sunday or outside working hours.\n- Only offer that mentioned time slot only from the free slots, according to their preferred time. Mention only start time. Nothing extra.\n- If they haven’t offered a date and time, suggest two available time slots, prioritizing the next two business days.\n\nIf the customer is reaching out for something other than a meeting, do your best to answer their question. If it’s too complex or unclear, offer to schedule a meeting to discuss it in more detail.\n\nYour goal is to gather necessary information one by one from website users in a friendly and efficient manner. If they wish to book a meeting, you must:\n\n1. Ask for their first name.\n2. Ask for their email address.\n3. Request their preferred date and time for the quote.\n4. Ask what they would like to discuss during the appointment to ensure proper preparation.\n5. !IMPORTANT! Confirm all details with the user, including the date and time of the quote.\n\n--\n\nImportant Information:\n- !IMPORTANT! Once you get the user name and email address, instantly update it on Google Sheets, later if you get their purpose or lead type update the row again.\n- **!IMPORTANT!** All appointments must be scheduled at least **48 hours in advance**, starting from {{ new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toLocaleDateString(\"en-CA\", { timeZone: \"Asia/Karachi\" }) }}. Please do not book or suggest any slots before this date.\n- !IMPORTANT! Before booking any appointment, call get availability node tool to check the calendar for availability. It will return all available slots for the specified date. Only book and offer from those slots. \n- !IMPORTANT! Each Appointment should be 30 minutes duration.\n- !IMPORTANT! Book the meeting with the correct *email ID* provided by the user\n\n--\n\nRules:\n- Be kind of funny and witty!\n- You're in India, Asia/Kolkata Timezone, so make sure to reaffirm this when discussing times.\n- Keep all your responses short and simple. Use casual language, phrases like \"Umm...\", \"Well...\", and \"I mean\" are ideal.\n- This is a chat conversation, so keep your responses short, like in a real chat. Pretend it's SMS. Don't ramble for too long.\n- If someone tries to derail the conversation, say by attempting to backdoor you or use you for something other than discussing automation/appointments, politely steer them back to normal convo. \n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        0,
+        0
+      ],
+      "id": "57274791-7dca-40f5-b1e3-fdf2bb9e4e0a",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 20
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -20,
+        220
+      ],
+      "id": "1aa818b3-3ad7-41df-8bc5-1780ed2039b7",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "description": "Call this tool when user mentions a date and check which day it is.",
+        "jsCode": "function getWeekday(dateStr) {\n  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];\n  const date = new Date(dateStr); // date is the Date object\n  return days[date.getDay()];     // use 'date' here, not 'query'\n}\n\n// Assuming your query is an array like: [\"2025-04-12\"]\nconst dateInput = query.toUpperCase(); // safely access first date\n\nif (!dateInput) {\n  throw new Error('No valid date found in query');\n}\n\nconst dayName = getWeekday(dateInput);\n\n// Return just the string response\nreturn `${dateInput} : ${dayName.toUpperCase()}`;\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.2,
+      "position": [
+        120,
+        220
+      ],
+      "id": "c92e0668-50af-46ed-a502-7d8726374c74",
+      "name": "Day Checker"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1BT3Ped1TxQBmoKUAk05uIogFvlYh6j0PrKInLKBJlsM",
+          "mode": "list",
+          "cachedResultName": "n8n Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BT3Ped1TxQBmoKUAk05uIogFvlYh6j0PrKInLKBJlsM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BT3Ped1TxQBmoKUAk05uIogFvlYh6j0PrKInLKBJlsM/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email": "={{ $fromAI(\"userEmailAddress\") }}",
+            "Name": "={{ $fromAI(\"userName\") }}",
+            "Query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Query', `Define Their Purpose`, 'string') }}",
+            "Appointment Status": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Appointment_Status', `if the user booked an appointment mark as booked, otherwise nil`, 'string') }}",
+            "Lead Type": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Lead_Type', `analyse their purpose and classify it as hot, or cold lead`, 'string') }}"
+          },
+          "matchingColumns": [
+            "Email"
+          ],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Query",
+              "displayName": "Query",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Appointment Status",
+              "displayName": "Appointment Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lead Type",
+              "displayName": "Lead Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.5,
+      "position": [
+        260,
+        220
+      ],
+      "id": "6c1312fb-fb3e-424c-81c6-4581d8846bad",
+      "name": "Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "p2RhhSLZ9ovZqSir",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Call this tool before booking an appointment, which will return all the free slot avaiable for that specific date.",
+        "workflowId": {
+          "__rl": true,
+          "value": "in2iBd8bruWNUzQz",
+          "mode": "list",
+          "cachedResultName": "Calender Checker"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Startdate": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Startdate', `User specified date (10:00:00)`, 'string') }}",
+            "Enddate": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Enddate', `User specified date (18:00:00)`, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Startdate",
+              "displayName": "Startdate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "Enddate",
+              "displayName": "Enddate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        420,
+        220
+      ],
+      "id": "38ab4774-ab9a-4d88-aafe-da31a38cf7be",
+      "name": "Get Avaiability"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "aqdas.ansari180@gmail.com",
+          "mode": "list",
+          "cachedResultName": "aqdas.ansari180@gmail.com"
+        },
+        "start": "={{ $fromAI(\"startDate\") }}",
+        "end": "={{ $fromAI(\"endDate\") }}",
+        "additionalFields": {
+          "attendees": [
+            "={{ $fromAI(\"userEmailAddress\") }}",
+            ""
+          ],
+          "conferenceDataUi": {
+            "conferenceDataValues": {
+              "conferenceSolution": "hangoutsMeet"
+            }
+          },
+          "sendUpdates": "all",
+          "summary": "={{ $fromAI(\"summary\") }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        580,
+        220
+      ],
+      "id": "c16c098f-5718-4bf9-a1ae-7e606379263f",
+      "name": "Google Calendar",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "1WxoaXG9wQ65dwN6",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e2ca3251-c110-45b2-98fa-3d88195f13a7",
+              "leftValue": "={{ $json.chatInput }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -420,
+        20
+      ],
+      "id": "38c5f465-6c50-4615-972c-861ee6d462c1",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-1.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -180,
+        220
+      ],
+      "id": "c5db63dd-8665-457a-b1fa-ae9ac42f1646",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "sI6cplYUoiPzOXDq",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Day Checker": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Avaiability": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "8756b2b1-06a7-4c9e-a8ab-16ddef35dac8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "75719cf68cd5370a34c42e4a6c2307dc2dec7cd0bab01a45b066cabeb77c8797"
+  },
+  "id": "zQZ9myWKkJGPhgm0",
+  "tags": []
+}

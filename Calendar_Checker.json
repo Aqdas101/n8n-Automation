@@ -1,0 +1,174 @@
+{
+  "name": "Calendar Checker",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "Startdate"
+            },
+            {
+              "name": "Enddate"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "faed86af-2b86-41d0-86f7-b1e2336aa356",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "aqdas.ansari180@gmail.com",
+          "mode": "list",
+          "cachedResultName": "aqdas.ansari180@gmail.com"
+        },
+        "returnAll": true,
+        "timeMin": "={{ $json.Startdate }}",
+        "timeMax": "={{ $json.Enddate }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        220,
+        0
+      ],
+      "id": "df6b1f2d-82ad-4ab4-9a76-d2e8dc2efe98",
+      "name": "Google Calendar",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "1WxoaXG9wQ65dwN6",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// These are the already booked calendar events\nconst bookedEvents = items || [];\n\n// Extract the start and end times for each booked slot, safely\nconst bookedTimeSlots = bookedEvents\n  .filter(event => event.json?.start?.dateTime && event.json?.end?.dateTime)\n  .map(event => {\n    const startTime = event.json.start.dateTime.split(\"T\")[1].split(\"+\")[0];\n    const endTime = event.json.end.dateTime.split(\"T\")[1].split(\"+\")[0];\n\n    return {\n      start: startTime,\n      end: endTime\n    };\n  });\n\n// Return the booked slots\nreturn [{\n  json: {\n    message: bookedTimeSlots.length > 0 \n      ? \"These are the already booked time slots for this date.\"\n      : \"No events booked for this date.\",\n    bookedTimeSlots\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "a387b918-2971-4619-aab3-d66de5a7f545",
+      "name": "Code",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c0b6e779-0f7b-41f0-81f8-457f2b31ccfe",
+              "name": "response",
+              "type": "array",
+              "value": "={{ $json.availableTimeSlots.toJsonString() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0bdf2078-8797-4072-be46-690e242950d3",
+      "name": "varResponse",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        880,
+        0
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "jsCode": "const workingStart = \"10:00\";\nconst workingEnd = \"18:00\";\nconst slotDuration = 30; // minutes\nconst buffer = 15; // minutes between slots\n\nconst toMinutes = time => {\n  const [h, m] = time.split(\":\").map(Number);\n  return h * 60 + m;\n};\n\nconst toTimeString = minutes => {\n  const h = String(Math.floor(minutes / 60)).padStart(2, '0');\n  const m = String(minutes % 60).padStart(2, '0');\n  return `${h}:${m}`;\n};\n\n// Safely get booked slots or default to empty array\nconst bookedSlots = items[0].json.bookedTimeSlots || [];\n\n// Add buffer before/after each booked slot to block surrounding time\nconst blockedTimes = bookedSlots.map(slot => ({\n  start: toMinutes(slot.start) - buffer,\n  end: toMinutes(slot.end) + buffer\n}));\n\n// Add lunch break from 13:00 to 14:00\nblockedTimes.push({\n  start: toMinutes(\"13:00\"),\n  end: toMinutes(\"14:00\")\n});\n\nconst availableTimeSlots = [];\nlet current = toMinutes(workingStart);\nconst endOfDay = toMinutes(workingEnd);\n\nwhile (current + slotDuration <= endOfDay) {\n  const slotStart = current;\n  const slotEnd = current + slotDuration;\n\n  // Check for overlap with any blocked time\n  const overlaps = blockedTimes.some(blocked => {\n    return Math.max(slotStart, blocked.start) < Math.min(slotEnd, blocked.end);\n  });\n\n  if (!overlaps) {\n    availableTimeSlots.push({\n      start: toTimeString(slotStart),\n      end: toTimeString(slotEnd)\n    });\n\n    // Block this available slot too with 15-min gap\n    blockedTimes.push({\n      start: slotStart - buffer,\n      end: slotEnd + buffer\n    });\n  }\n\n  // Move forward in 15-min increments to evaluate next possible slot\n  current += 15;\n}\n\nreturn [{\n  json: {\n    availableTimeSlots\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ],
+      "id": "b7f3ee4c-e89d-4ea9-9996-498e693a0ff1",
+      "name": "Code1"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "Startdate": "2025-05-05T10:00:00",
+          "Enddate": "2025-05-05T18:00:00"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Google Calendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "varResponse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7b354b8a-56c9-4ce8-aa84-cdb6abeb83a1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "75719cf68cd5370a34c42e4a6c2307dc2dec7cd0bab01a45b066cabeb77c8797"
+  },
+  "id": "2zbpzgXPUnfOYoAj",
+  "tags": []
+}
